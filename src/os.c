@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static int time_slot;
+int time_slot;
 static int num_cpus;
 static int done = 0;
 
