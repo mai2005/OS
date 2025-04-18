@@ -13,7 +13,7 @@ static struct queue_t running_list;
 static struct queue_t mlq_ready_queue[MAX_PRIO];
 static int slot[MAX_PRIO];
 #endif
-
+extern int time_slot
 int queue_empty(void) {
 #ifdef MLQ_SCHED
 	unsigned long prio;
@@ -56,7 +56,7 @@ struct pcb_t * get_mlq_proc(void) {
 	for (int i=0; i<MAX_PRIO; i++) 
 		if (!empty(&mlq_ready_queue[i]) && slot[i] > 0) {
 			proc = dequeue(&mlq_ready_queue[i]);
-			if (proc != NULL) slot[i] -= 1;
+			if (proc != NULL) slot[i] -= time_slot;
 			break;
 		}
 	pthread_mutex_unlock(&queue_lock);
