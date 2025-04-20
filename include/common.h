@@ -14,15 +14,15 @@
 #include "os-mm.h"
 #endif
 
-#define ADDRESS_SIZE 20
-#define OFFSET_LEN 10
-#define FIRST_LV_LEN 5
-#define SECOND_LV_LEN 5
+#define ADDRESS_SIZE 20 // Địa chỉ ảo 20 bit
+#define OFFSET_LEN 10 // 10 bit offset 
+#define FIRST_LV_LEN 5 // 5 bit cho cấp 1 của phân trang
+#define SECOND_LV_LEN 5 // 5 bit cho cấp 2 của phân trang
 #define SEGMENT_LEN FIRST_LV_LEN
 #define PAGE_LEN SECOND_LV_LEN
 
-#define NUM_PAGES (1 << (ADDRESS_SIZE - OFFSET_LEN))
-#define PAGE_SIZE (1 << OFFSET_LEN)
+#define NUM_PAGES (1 << (ADDRESS_SIZE - OFFSET_LEN)) // Số trang = 2^(20-10) = 2^10 = 1024
+#define PAGE_SIZE (1 << OFFSET_LEN) // Kích thước trang = 2^10 = 1024 byte
 
 enum ins_opcode_t
 {
@@ -53,6 +53,7 @@ struct code_seg_t
 struct trans_table_t
 {
 	/* A row in the page table of the second layer */
+	// Cấp 2: tra v_index -> v_index
 	struct
 	{
 		addr_t v_index; // The index of virtual address
@@ -65,6 +66,7 @@ struct trans_table_t
 struct page_table_t
 {
 	/* Translation table for the first layer */
+	// Cấp 1: tra v_index -> trans_table_t
 	struct
 	{
 		addr_t v_index; // Virtual index
@@ -91,10 +93,10 @@ struct pcb_t
 	uint32_t prio;
 #endif
 #ifdef MM_PAGING
-	struct mm_struct *mm;
-	struct memphy_struct *mram;
-	struct memphy_struct **mswp;
-	struct memphy_struct *active_mswp;
+	struct mm_struct *mm; // Bộ nhớ ảo
+	struct memphy_struct *mram; // RAM
+	struct memphy_struct **mswp; // SWAP
+	struct memphy_struct *active_mswp; // SWAP hiện tại
 	uint32_t active_mswp_id;
 #endif
 	struct page_table_t *page_table; // Page table

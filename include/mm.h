@@ -6,19 +6,19 @@
 /* CPU Bus definition */
 #define PAGING_CPU_BUS_WIDTH 22 /* 22bit bus - MAX SPACE 4MB */
 #define PAGING_PAGESZ  256      /* 256B or 8-bits PAGE NUMBER */
-#define PAGING_MEMRAMSZ BIT(21)
+#define PAGING_MEMRAMSZ BIT(21) //Ram vật lí = 2^21 = 2MB
 #define PAGING_PAGE_ALIGNSZ(sz) (DIV_ROUND_UP(sz,PAGING_PAGESZ)*PAGING_PAGESZ)
 
-#define PAGING_MEMSWPSZ BIT(29)
+#define PAGING_MEMSWPSZ BIT(29) //Swap vật lí = 2^29 = 512MB
 #define PAGING_SWPFPN_OFFSET 5  
 #define PAGING_MAX_PGN  (DIV_ROUND_UP(BIT(PAGING_CPU_BUS_WIDTH),PAGING_PAGESZ))
 
 #define PAGING_SBRK_INIT_SZ PAGING_PAGESZ
 /* PTE BIT */
-#define PAGING_PTE_PRESENT_MASK BIT(31) 
-#define PAGING_PTE_SWAPPED_MASK BIT(30)
+#define PAGING_PTE_PRESENT_MASK BIT(31) // Có trong RAM?
+#define PAGING_PTE_SWAPPED_MASK BIT(30) // Có trong SWAP?
 #define PAGING_PTE_RESERVE_MASK BIT(29)
-#define PAGING_PTE_DIRTY_MASK BIT(28)
+#define PAGING_PTE_DIRTY_MASK BIT(28) // Đã bị ghi?
 #define PAGING_PTE_EMPTY01_MASK BIT(14)
 #define PAGING_PTE_EMPTY02_MASK BIT(13)
 
@@ -96,7 +96,7 @@
 /* Memory range operator */
 /* TODO implement the INCLUDE and OVERLAP checking mechanism */
 #define INCLUDE(x1,x2,y1,y2) (0)
-#define OVERLAP(x1,x2,y1,y2) (0)
+#define OVERLAP(x1,x2,y1,y2) (!((x2 < y1) || (x1 > y2)))
 
 /* VM region prototypes */
 struct vm_rg_struct * init_vm_rg(int rg_start, int rg_endi);
