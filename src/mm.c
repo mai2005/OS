@@ -53,6 +53,7 @@ int init_pte(uint32_t *pte,
  */
 int pte_set_swap(uint32_t *pte, int swptyp, int swpoff)
 {
+  printf("SWAPPPPPPPPP \n");
   SETBIT(*pte, PAGING_PTE_PRESENT_MASK);
   SETBIT(*pte, PAGING_PTE_SWAPPED_MASK);
 
@@ -367,6 +368,14 @@ int print_pgtbl(struct pcb_t *caller, uint32_t start, uint32_t end)
   {
     printf("%08ld: %08x\n", pgit * sizeof(uint32_t), caller->mm->pgd[pgit]);
   }
+
+  for (pgit = pgn_start; pgit < pgn_end; pgit++) {
+    if (PAGING_PAGE_PRESENT(caller->mm->pgd[pgit])) {
+      int fpn = PAGING_FPN(caller->mm->pgd[pgit]);
+      printf("Page Number: %d -> Frame Number: %d\n", pgit, fpn);
+    }
+  }
+  printf("================================================================\n");
 
   return 0;
 }

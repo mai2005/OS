@@ -111,6 +111,7 @@ int MEMPHY_write(struct memphy_struct *mp, int addr, BYTE data)
 /*
  *  MEMPHY_format-format MEMPHY device
  *  @mp: memphy struct
+ *  Chia thành các frames kích thước bằng nhau
  */
 int MEMPHY_format(struct memphy_struct *mp, int pagesz)
 {
@@ -140,6 +141,7 @@ int MEMPHY_format(struct memphy_struct *mp, int pagesz)
    return 0;
 }
 
+/* Lấy frames trống */
 int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 {
    struct framephy_struct *fp = mp->free_fp_list;
@@ -160,12 +162,28 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 
 int MEMPHY_dump(struct memphy_struct *mp)
 {
-  /*TODO dump memphy contnt mp->storage
-   *     for tracing the memory content
-   */
+   if (mp == NULL || mp->storage == NULL)
+      return -1;
+
+   int printed = 0; 
+
+   for (int i = 0; i < mp->maxsz; i++) {
+      if (mp->storage[i] != 0) {
+         if (!printed) 
+            printf("===== PHYSICAL MEMORY DUMP =====\n");
+         printf("BYTE %08X: %d\n", i, mp->storage[i]);
+         printed = 1; 
+      }
+   }
+
+   if (printed) 
+      printf("===== PHYSICAL MEMORY END-DUMP =====\n");
+   
    return 0;
 }
 
+
+/* Thêm lại 1 frames vào đầu danh sách rỗng */
 int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
 {
    struct framephy_struct *fp = mp->free_fp_list;
