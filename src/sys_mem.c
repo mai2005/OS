@@ -36,6 +36,9 @@ int __sys_memmap(struct pcb_t *caller, struct sc_regs* regs)
    case SYSMEM_IO_WRITE:
             MEMPHY_write(caller->mram, regs->a2, regs->a3);
             break;
+   case SYSMEM_SWI_OP:
+            __mm_swap_page_in(caller, regs->a2, regs->a3);
+            break;
    default:
             printf("Memop code: %d\n", memop);
             break;

@@ -93,10 +93,18 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
    //struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
  
    int inc_sz = PAGING_PAGE_ALIGNSZ(size);
- 
-   if (inc_vma_limit(caller, vmaid, inc_sz) < 0) {
-     return -1;
-   }
+   /* TODO INCREASE THE LIMIT as inovking systemcall 
+    * sys_memap with SYSMEM_INC_OP 
+    */
+   struct sc_regs regs_alloc;
+   regs_alloc.a1 = 2;
+   regs_alloc.a2 = vmaid;
+   regs_alloc.a3 = inc_sz;
+   syscall(caller, 17, &regs_alloc);
+   //  if (inc_vma_limit(caller, vmaid, inc_sz) < 0) {
+   //    return -1;
+   //  }
+   /* SYSCALL 17 sys_memmap */
  
    struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
    int start = cur_vma->sbrk - inc_sz;
@@ -104,16 +112,6 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
  
    /* TODO retrive old_sbrk if needed, current comment out due to compiler redundant warning*/
    // int old_sbrk = cur_vma->sbrk;
- 
-   /* TODO INCREASE THE LIMIT as inovking systemcall 
-    * sys_memap with SYSMEM_INC_OP 
-    */
-   //struct sc_regs regs;
-   //regs.a1 = ...
-   //regs.a2 = ...
-   //regs.a3 = ...
-   
-   /* SYSCALL 17 sys_memmap */
  
    /* TODO: commit the limit increment */
    caller->mm->symrgtbl[rgid].rg_start = start;
@@ -267,40 +265,40 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
      * SYSCALL 17 sys_memmap 
      * with operation SYSMEM_SWP_OP
      */
-    __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
-    //struct sc_regs regs;
-    //regs.a1 =...
-    //regs.a2 =...
-    //regs.a3 =..
+    //__swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
+    struct sc_regs regs_getpage;
+    regs_getpage.a1 = 3;
+    regs_getpage.a2 = vicfpn;
+    regs_getpage.a3 = swpfpn;
+    syscall(caller, 17, &regs_getpage);
 
     /* SYSCALL 17 sys_memmap */
-
+    pte_set_swap(&mm->pgd[vicpgn], caller->active_mswp_id, swpfpn);
+    MEMPHY_put_freefp(caller->mram, vicfpn);
+    if (MEMPHY_get_freefp(caller->mram, fpn) < 0)
+       return -1;
     /* TODO copy target frame form swap to mem 
      * SWP(tgtfpn <--> vicfpn)
      * SYSCALL 17 sys_memmap
      * with operation SYSMEM_SWP_OP
      */
     // TODO copy target frame form swap to mem 
-    __swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, vicfpn);
-    //regs.a1 =...
-    //regs.a2 =...
-    //regs.a3 =..
-    MEMPHY_put_freefp(caller->active_mswp, tgtfpn);
-    
-
+    //__swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, vicfpn);
+    regs_getpage.a1 = 6;
+    regs_getpage.a2 = tgtfpn;
+    regs_getpage.a3 = vicfpn;
+    syscall(caller, 17, &regs_getpage);
     /* SYSCALL 17 sys_memmap */
-
+    
     /* Update page table */
     //pte_set_swap() 
     //mm->pgd;
-    pte_set_swap(&mm->pgd[vicpgn], 0, swpfpn);
 
     /* Update its online status of the target page */
     //pte_set_fpn() &
     //mm->pgd[pgn];
     //pte_set_fpn();
     pte_set_fpn(&mm->pgd[pgn], vicfpn);
-    PAGING_PTE_SET_PRESENT(mm->pgd[pgn]);
     enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
   }
 
@@ -330,19 +328,18 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
    *  MEMPHY READ 
    *  SYSCALL 17 sys_memmap with SYSMEM_IO_READ
    */
-  // int phyaddr
   int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
-  //struct sc_regs regs;
-  //regs.a1 = ...
-  //regs.a2 = ...
-  //regs.a3 = ...
-
+  struct sc_regs regs;
+  regs.a1 = 4;
+  regs.a2 = phyaddr;
+  regs.a3 = 0;
+  syscall(caller, 17, &regs);
+  // if (MEMPHY_read(caller->mram, phyaddr, data) != 0)
+  //   return -1;
   /* SYSCALL 17 sys_memmap */
 
   // Update data
-  // data = (BYTE)
-  if (MEMPHY_read(caller->mram, phyaddr, data) != 0)
-    return -1; 
+  // data = (BYTE) 
 
   return 0;
 }
@@ -368,18 +365,17 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
    *  MEMPHY WRITE
    *  SYSCALL 17 sys_memmap with SYSMEM_IO_WRITE
    */
-  // int phyaddr
   int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
-  //struct sc_regs regs;
-  //regs.a1 = ...
-  //regs.a2 = ...
-  //regs.a3 = ...
-
+  struct sc_regs regs;
+  regs.a1 = 5;
+  regs.a2 = phyaddr;
+  regs.a3 = value;
+  syscall(caller, 17, &regs);
+  //MEMPHY_write(caller->mram, phyaddr, value);
   /* SYSCALL 17 sys_memmap */
 
   // Update data
   // data = (BYTE) 
-  MEMPHY_write(caller->mram, phyaddr, value);
 
   return 0;
 }
@@ -421,7 +417,7 @@ if (val == 0) {
   *destination = (uint32_t)data; 
 }
 else {
-  *destination = 0;
+  *destination = -1;
   return -1;
 }
 

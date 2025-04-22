@@ -41,7 +41,11 @@ int __mm_swap_page(struct pcb_t *caller, int vicfpn , int swpfpn)
     __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
     return 0;
 }
-
+int __mm_swap_page_in(struct pcb_t *caller, int tgtfpn , int vicfpn)
+{
+  __swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, vicfpn);
+    return 0;
+}
 /*get_vm_area_node - get vm area for a number of pages
  *@caller: caller
  *@vmaid: ID vm area to alloc memory region
