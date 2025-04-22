@@ -95,7 +95,6 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
    int inc_sz = PAGING_PAGE_ALIGNSZ(size);
  
    if (inc_vma_limit(caller, vmaid, inc_sz) < 0) {
-     pthread_mutex_unlock(&mmvm_lock);
      return -1;
    }
  
@@ -126,10 +125,9 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
  
    if (size < inc_sz) {
      struct vm_rg_struct *freerg = malloc(sizeof(struct vm_rg_struct));
-     if (!freerg) {
-       pthread_mutex_unlock(&mmvm_lock);
+     if (!freerg) 
        return -1;
-     }
+     
  
      freerg->rg_start = end;
      freerg->rg_end = end + inc_sz - size;
@@ -137,20 +135,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
      
      enlist_vm_freerg_list(caller->mm, freerg);
    }
- 
-   /*
-   struct vm_rg_struct *first = cur_vma->vm_freerg_list;
-   if (first != NULL && first->rg_start == start) {
-     first->rg_start = end;
- 
-     if (first->rg_start >= first->rg_end) {
-       cur_vma->vm_freerg_list = first->rg_next;
-       free(first);
-     }
-   }
-   */
- 
-   pthread_mutex_unlock(&mmvm_lock);
+
    return 0;
  }
 /*__free - remove a region memory
@@ -257,12 +242,11 @@ int libfree(struct pcb_t *proc, uint32_t reg_index)
 int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 {
   uint32_t pte = mm->pgd[pgn];
-
+  
   if (!PAGING_PAGE_PRESENT(pte))
   { /* Page is not online, make it actively living */
     int vicpgn, swpfpn; 
     
-
     /* TODO: Play with your paging theory here */
     /* Find victim page */
     if (find_victim_page(caller->mm, &vicpgn) < 0) 
@@ -271,6 +255,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     //uint32_t vicpte;
 
     int tgtfpn = PAGING_PTE_SWP(pte);//the target frame storing our variable
+    
     /* Get free frame in MEMSWP */
     if (MEMPHY_get_freefp(caller->active_mswp, &swpfpn) < 0)
       return -1;
@@ -301,7 +286,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     //regs.a2 =...
     //regs.a3 =..
     MEMPHY_put_freefp(caller->active_mswp, tgtfpn);
-    *fpn = PAGING_FPN(mm->pgd[pgn]);
+    
 
     /* SYSCALL 17 sys_memmap */
 
@@ -371,7 +356,7 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
 int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
 {
   int pgn = PAGING_PGN(addr);
-  //int off = PAGING_OFFST(addr);
+  int off = PAGING_OFFST(addr);
   int fpn;
 
   /* Get the page to MEMRAM, swap from MEMSWAP if needed */
@@ -384,7 +369,6 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
    *  SYSCALL 17 sys_memmap with SYSMEM_IO_WRITE
    */
   // int phyaddr
-  int off = PAGING_OFFST(addr);
   int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
   //struct sc_regs regs;
   //regs.a1 = ...
@@ -483,8 +467,7 @@ int libwrite(
 int result = __write(proc, 0, destination, offset, data);
 #ifdef IODUMP
 printf("===== PHYSICAL MEMORY AFTER WRITING =====\n");
-printf("PIDDDDDDDDDDDDDĐ = %u\n", proc->pid);
-printf("PID=%u write region=%d offset=%d value=%d\n", proc->pid, destination, offset, data);
+printf("write region=%d offset=%d value=%d\n", destination, offset, data);
 #ifdef PAGETBL_DUMP
 print_pgtbl(proc, 0, -1); //print max TBL
 #endif
@@ -534,8 +517,22 @@ int find_victim_page(struct mm_struct *mm, int *retpgn)
   /* TODO: Implement the theorical mechanism to find the victim page */
   if (pg == NULL)
     return -1;
-  *retpgn = pg->pgn;
-  mm->fifo_pgn = pg->pg_next;
+
+  if (pg->pg_next == NULL) 
+  {
+    *retpgn = pg->pgn;
+    mm->fifo_pgn = NULL;
+  }
+  else {
+    struct pgn_t* temp;
+    while (pg->pg_next->pg_next != NULL)
+      pg = pg->pg_next;
+    temp = pg->pg_next;
+    *retpgn = temp->pgn;
+    pg->pg_next = NULL;
+    pg = temp;
+  }
+
   free(pg);
 
   return 0;

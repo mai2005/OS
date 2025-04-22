@@ -61,6 +61,7 @@ struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
   // TODO: update the newrg boundary
   newrg->rg_start = cur_vma->sbrk;
   newrg->rg_end = newrg->rg_start + alignedsz;
+  newrg->rg_next = NULL;
   
   return newrg;
 }

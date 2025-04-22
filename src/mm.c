@@ -53,7 +53,6 @@ int init_pte(uint32_t *pte,
  */
 int pte_set_swap(uint32_t *pte, int swptyp, int swpoff)
 {
-  printf("SWAPPPPPPPPP \n");
   SETBIT(*pte, PAGING_PTE_PRESENT_MASK);
   SETBIT(*pte, PAGING_PTE_SWAPPED_MASK);
 
@@ -321,7 +320,11 @@ int print_list_vma(struct vm_area_struct *ivma)
   struct vm_area_struct *vma = ivma;
 
   printf("print_list_vma: ");
-  if (vma == NULL) { printf("NULL list\n"); return -1; }
+  if (vma == NULL) 
+  { 
+    printf("NULL list\n"); 
+    return -1; 
+  }
   printf("\n");
   while (vma != NULL)
   {
@@ -335,7 +338,11 @@ int print_list_vma(struct vm_area_struct *ivma)
 int print_list_pgn(struct pgn_t *ip)
 {
   printf("print_list_pgn: ");
-  if (ip == NULL) { printf("NULL list\n"); return -1; }
+  if (ip == NULL) 
+  { 
+    printf("NULL list\n"); 
+    return -1; 
+  }
   printf("\n");
   while (ip != NULL)
   {
