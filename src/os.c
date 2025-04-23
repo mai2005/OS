@@ -57,6 +57,7 @@ static void * cpu_routine(void * args) {
 		 	* ready queue */
 			proc = get_proc();
 			if (proc == NULL) {
+			   if (done) {printf("\tCPU %d stopped because done\n", id);break;}//Modified
                            next_slot(timer_id);
                            continue; /* First load failed. skip dummy load */
                         }
@@ -64,6 +65,7 @@ static void * cpu_routine(void * args) {
 			/* The porcess has finish it job */
 			printf("\tCPU %d: Processed %2d has finished\n",
 				id ,proc->pid);
+			dequeue_running(); //Modified
 			free(proc);
 			proc = get_proc();
 			time_left = 0;
@@ -71,6 +73,7 @@ static void * cpu_routine(void * args) {
 			/* The process has done its job in current time slot */
 			printf("\tCPU %d: Put process %2d to run queue\n",
 				id, proc->pid);
+			dequeue_running(); //Modified
 			put_proc(proc);
 			proc = get_proc();
 		}
@@ -88,10 +91,13 @@ static void * cpu_routine(void * args) {
 		}else if (time_left == 0) {
 			printf("\tCPU %d: Dispatched process %2d\n",
 				id, proc->pid);
+			enqueue_running(proc); //Modified
 			time_left = time_slot;
 		}
 		
 		/* Run current process */
+		//printf("\tCPU %d: Running process %2d\n", id, proc->pid); //print for debug
+		//printRunList(); //print for debug
 		run(proc);
 		time_left--;
 		next_slot(timer_id);
