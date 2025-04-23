@@ -10,6 +10,7 @@
 #define MAX_PRIO 140
 
 int queue_empty(void);
+int period(void);
 
 void init_scheduler(void);
 void finish_scheduler(void);
