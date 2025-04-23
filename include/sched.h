@@ -22,7 +22,7 @@ void put_proc(struct pcb_t * proc);
 
 /* Add a new process to ready queue */
 void add_proc(struct pcb_t * proc);
-
+void printRunList(void); //for debug purpose
+void enqueue_running(struct pcb_t * proc);
+void dequeue_running();
 #endif
-
-
