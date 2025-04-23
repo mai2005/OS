@@ -36,6 +36,7 @@
  #endif
  	ready_queue.size = 0;
  	run_queue.size = 0;
+	running_list.size = 0;
  	pthread_mutex_init(&queue_lock, NULL);
  }
  
@@ -57,7 +58,9 @@
  	for (int i=0; i<MAX_PRIO; i++) 
  		if (!empty(&mlq_ready_queue[i]) && slot[i] > 0) {
  			proc = dequeue(&mlq_ready_queue[i]);
- 			if (proc != NULL) slot[i] -= time_slot;
+ 			if (proc != NULL){
+				slot[i] -= time_slot;
+			}
  			break;
  		}
  	pthread_mutex_unlock(&queue_lock);
@@ -85,7 +88,6 @@
  	proc->ready_queue = &ready_queue;
  	proc->mlq_ready_queue = mlq_ready_queue;
  	proc->running_list = & running_list;
- 
  	/* TODO: put running proc to running_list */
  	return put_mlq_proc(proc);
  }
@@ -98,6 +100,33 @@
  	/* TODO: put running proc to running_list */
  	return add_mlq_proc(proc);
  }
+ //dequeue from running_list
+ struct pcb_t* dequeue_running(void) {
+ 	pthread_mutex_lock(&queue_lock);
+ 	struct pcb_t* tmp = dequeue(&running_list);
+ 	pthread_mutex_unlock(&queue_lock);
+	return tmp;
+ }
+ //enqueue to running list
+ void enqueue_running(struct pcb_t * proc) {
+ 	pthread_mutex_lock(&queue_lock);
+ 	enqueue(&running_list, proc);
+ 	pthread_mutex_unlock(&queue_lock);
+ }
+ 
+ void printRunList(void) {
+ 	struct pcb_t * proc = NULL;
+ 	pthread_mutex_lock(&queue_lock);
+	printf("\t\t\t\\\\\\\\--------------Size:||-%d-||--------------////\n", running_list.size);
+ 	for (int i = 0; i < running_list.size; i++) {
+ 		proc = dequeue(&running_list);
+ 		printf("\t\t\t\tProcess PID: |||----%d----||\n", proc->pid);
+ 		enqueue(&running_list, proc); // Re-add process to the list
+ 	}
+	printf("\t\t\t\\\\\\\\----------------------------------------////\n");
+ 	pthread_mutex_unlock(&queue_lock);
+ 	return;
+ } //for debug purpose
  #else
  struct pcb_t * get_proc(void) {
  	struct pcb_t * proc = NULL;
