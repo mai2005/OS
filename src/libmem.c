@@ -101,9 +101,6 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
    regs_alloc.a2 = vmaid;
    regs_alloc.a3 = inc_sz;
    syscall(caller, 17, &regs_alloc);
-   //  if (inc_vma_limit(caller, vmaid, inc_sz) < 0) {
-   //    return -1;
-   //  }
    /* SYSCALL 17 sys_memmap */
  
    struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
@@ -175,7 +172,7 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
  
    caller->mm->symrgtbl[rgid].rg_start = 0;
    caller->mm->symrgtbl[rgid].rg_end   = 0;
- 
+   
    return 0;
  }
 
@@ -192,9 +189,10 @@ int liballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
   /* By default using vmaid = 0 */
   // return __alloc(proc, 0, reg_index, size, &addr);
   int ret = __alloc(proc, 0, reg_index, size, &addr);
-  if (ret == 0) {
-    proc->regs[reg_index] = addr;
-  }
+
+  if (ret != 0) return -1;
+  pthread_mutex_lock(&mmvm_lock);
+  proc->regs[reg_index] = addr;
 
   #ifdef IODUMP
   printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
@@ -204,7 +202,7 @@ int liballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
   #endif
     MEMPHY_dump(proc->mram);
   #endif  
-
+  pthread_mutex_unlock(&mmvm_lock);
   return ret;
 }
 
@@ -218,14 +216,16 @@ int libfree(struct pcb_t *proc, uint32_t reg_index)
 {
   /* TODO Implement free region */
   int free_res = __free(proc, 0, reg_index);
+  if (free_res == -1) return -1;
 #ifdef IODUMP
+  pthread_mutex_lock(&mmvm_lock);
   printf("===== PHYSICAL MEMORY AFTER DEALLOCATION =====\n");
   printf("PID=%u - Region=%u\n", proc->pid, reg_index);
 #ifdef PAGETBL_DUMP
   print_pgtbl(proc, 0, -1); //print max TBL
 #endif
+  pthread_mutex_unlock(&mmvm_lock);
 #endif 
-
   /* By default using vmaid = 0 */
   return free_res;
 }
@@ -334,12 +334,10 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
   regs.a2 = phyaddr;
   regs.a3 = 0;
   syscall(caller, 17, &regs);
-  // if (MEMPHY_read(caller->mram, phyaddr, data) != 0)
-  //   return -1;
   /* SYSCALL 17 sys_memmap */
 
   // Update data
-  // data = (BYTE) 
+  *data = (BYTE)regs.a3;
 
   return 0;
 }
@@ -396,6 +394,11 @@ int __read(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE *data)
   if (currg == NULL || cur_vma == NULL) /* Invalid memory identify */
     return -1;
 
+  // if (currg->rg_start == currg->rg_end || offset > 255) {
+  //   printf("[ERROR READING] ADDRESS NOT EXIST!\n");
+  //   return -1;
+  // }
+
   pg_getval(caller->mm, currg->rg_start + offset, data, caller);
 
   return 0;
@@ -417,7 +420,7 @@ if (val == 0) {
   *destination = (uint32_t)data; 
 }
 else {
-  *destination = -1;
+  *destination = (uint32_t)(-1);
   return -1;
 }
 
@@ -448,6 +451,11 @@ int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value)
   if (currg == NULL || cur_vma == NULL) /* Invalid memory identify */
     return -1;
 
+  // if (currg->rg_start == currg->rg_end || offset > 255) {
+  //   printf("[ERROR WRITING] ADDRESS NOT EXIST!\n");
+  //   return -1;
+  // }
+
   pg_setval(caller->mm, currg->rg_start + offset, value, caller);
 
   return 0;
@@ -461,6 +469,8 @@ int libwrite(
   uint32_t offset)
 {
 int result = __write(proc, 0, destination, offset, data);
+if (result == -1) return -1;
+  pthread_mutex_lock(&mmvm_lock);
 #ifdef IODUMP
 printf("===== PHYSICAL MEMORY AFTER WRITING =====\n");
 printf("write region=%d offset=%d value=%d\n", destination, offset, data);
@@ -469,6 +479,7 @@ print_pgtbl(proc, 0, -1); //print max TBL
 #endif
 MEMPHY_dump(proc->mram);
 #endif
+pthread_mutex_unlock(&mmvm_lock);
 return result;
 }
 

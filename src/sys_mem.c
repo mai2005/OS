@@ -43,7 +43,6 @@ int __sys_memmap(struct pcb_t *caller, struct sc_regs* regs)
             printf("Memop code: %d\n", memop);
             break;
    }
-   
    return 0;
 }
 

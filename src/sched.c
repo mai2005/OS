@@ -67,8 +67,10 @@
  	pthread_mutex_lock(&queue_lock);
 	if( period() ) //Check if all slot are used up, reset all
 		for (int i = 0; i < MAX_PRIO; i++) 
-			if (!empty(&mlq_ready_queue[i]))
+			if (!empty(&mlq_ready_queue[i]) && slot[i] <= 0) {
 				slot[i] = MAX_PRIO - i;
+				break; 
+			}
 
  	for (int i=0; i<MAX_PRIO; i++)
  		if (!empty(&mlq_ready_queue[i]) && slot[i] > 0) {
