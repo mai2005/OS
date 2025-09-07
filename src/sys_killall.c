@@ -38,6 +38,7 @@ void remove_matching_processes(struct queue_t *queue, char* proc_name, uint32_t 
             for (int ind=0; ind<10; ind++) {
                 libfree(proc, ind);  
             }
+            printf("Process mlq with pid %d is killed\n", proc->pid);
             free(proc);  
         } else {
             enqueue(&temp_queue, proc);  
@@ -73,6 +74,7 @@ void remove_matching_running_processes(struct pcb_t *caller, char* proc_name, ui
 
         if (strcmp(name, proc_name) == 0) {
             proc->pc = proc->code->size; 
+            printf("Process running with pid %d is killed\n", proc->pid);
         } else {
             enqueue(&temp_queue, proc); 
         }
