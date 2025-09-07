@@ -394,13 +394,13 @@ int __read(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE *data)
   if (currg == NULL || cur_vma == NULL) /* Invalid memory identify */
     return -1;
 
-  // if (currg->rg_start == currg->rg_end || offset > 255) {
+  // if (currg->rg_start == currg->rg_end || offset > currg->rg_end-currg->rg_start-1) {
   //   printf("[ERROR READING] ADDRESS NOT EXIST!\n");
   //   return -1;
   // }
 
   pg_getval(caller->mm, currg->rg_start + offset, data, caller);
-
+ 
   return 0;
 }
 
@@ -425,12 +425,14 @@ else {
 }
 
 #ifdef IODUMP
+pthread_mutex_lock(&mmvm_lock);
 printf("===== PHYSICAL MEMORY AFTER READING =====\n");
-printf("read region=%d offset=%d value=%d\n", source, offset, data);
+printf("%d read region=%d offset=%d value=%d\n",proc->pid, source, offset, data);
 #ifdef PAGETBL_DUMP
 print_pgtbl(proc, 0, -1); //print max TBL
 #endif
 MEMPHY_dump(proc->mram);
+pthread_mutex_unlock(&mmvm_lock);
 #endif
 return val;
 }
@@ -451,13 +453,12 @@ int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value)
   if (currg == NULL || cur_vma == NULL) /* Invalid memory identify */
     return -1;
 
-  // if (currg->rg_start == currg->rg_end || offset > 255) {
+  // if (currg->rg_start == currg->rg_end || offset > currg->rg_end-currg->rg_start-1) {
   //   printf("[ERROR WRITING] ADDRESS NOT EXIST!\n");
   //   return -1;
   // }
 
   pg_setval(caller->mm, currg->rg_start + offset, value, caller);
-
   return 0;
 }
 
@@ -470,10 +471,11 @@ int libwrite(
 {
 int result = __write(proc, 0, destination, offset, data);
 if (result == -1) return -1;
-  pthread_mutex_lock(&mmvm_lock);
+
 #ifdef IODUMP
+pthread_mutex_lock(&mmvm_lock);
 printf("===== PHYSICAL MEMORY AFTER WRITING =====\n");
-printf("write region=%d offset=%d value=%d\n", destination, offset, data);
+printf("%d write region=%d offset=%d value=%d\n",proc->pid, destination, offset, data);
 #ifdef PAGETBL_DUMP
 print_pgtbl(proc, 0, -1); //print max TBL
 #endif
